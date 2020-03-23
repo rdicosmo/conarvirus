@@ -75,7 +75,7 @@ def smooth(y, n):
     
 
 
-def trace(d, sm=0, t=-1, log=True ):
+def trace(d, sm=0, t=-1, log=True, sync=False ):
 
     tmax = len(d["deaths"]["Hubei(China)"])  # max duration
     if t==-1:
@@ -83,20 +83,16 @@ def trace(d, sm=0, t=-1, log=True ):
         
     lk = len(keys)
     
-    jour = ( date(2020, 1, 21) + timedelta(days=t) ).isoformat()
-    print(jour)
+    day =  ( date(2020, 1, 21) + timedelta(days=t) ) 
     
-    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta","blue","red","green" ]*5
+    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta","blue","red","green" ]
     lc = len(colors)
     linestyles = [ "-", "--", "-.", ":" ]
     
     fig = plt.figure(figsize=(5*lk, 10))
-    fig.suptitle(jour)
+    fig.suptitle(day)
 
-    if log:
-        myplot=plt.semilogy
-    else:
-        myplot=plt.plot
+    shift = 5
 
     i=0
     for key in keys:
@@ -116,61 +112,86 @@ def trace(d, sm=0, t=-1, log=True ):
                 ddgs[f] = np.gradient( dgs[f] )
 
         ax1 = plt.subplot(3, lk, i+1)
-        plt.title( keys[i] )
+        plt.title( keys[i] + " $(f)$")
         k=0
         for f in d[key]:
             z = len(d[key][f])-tmax+t
+            if not sync:
+                xr = range(-z+1,1)
+            else:
+                xr = range(0,z)
             if z >= 2:
-                myplot(g[f][0:z], "+", color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
-                myplot(gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
-                plt.text( z-1, gs[f][z-1], f, color=colors[k%lc], fontsize=6 )
+                plt.plot( xr, g[f][0:z], "+", color=colors[k%lc] )
+                plt.plot( xr, gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
+                if gs[f][z-1]>10.0:
+                    plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=6 )
             k+=1
-        plt.ylim(bottom=10.0)
-        #if f=="confirmed":
-        #    plt.ylim(top=100000.0)
-        plt.xlim((0,t+5))
+        if log:
+            plt.yscale('log')
+            plt.ylim(bottom=10.0)
+        if not sync:
+            plt.xlim(-z+1,shift)
+        else:
+            plt.xlim(0,t+shift)
         
         ax2 = plt.subplot(3, lk, lk + i+1)
-        plt.title("Speed ("+keys[i]+" by day)")
+        plt.title(keys[i]+" by day $\\left(\\frac{df}{dt}\\right)$")
         k=0
         for f in d[key]:
             z = len(d[key][f])-tmax+t
+            if not sync:
+                xr = range(-z+1,1)
+            else:
+                xr = range(0,z)
             if z >= 2:
-                myplot(dg[f][0:z], "+", color=colors[k%lc])
-                myplot(dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
+                plt.plot(xr, dg[f][0:z], "+", color=colors[k%lc])
+                plt.plot(xr, dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
                 if dgs[f][z-1]>=1.0:
-                    plt.text( z-1, dgs[f][z-1], f, color=colors[k%lc], fontsize=6 )
+                    plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=6 )
             k+=1
         plt.ylim(bottom=1.0)
-        plt.xlim((0,t+5))
+        if log:
+            plt.yscale('log')
+        if not sync:
+            plt.xlim(-z+1,shift)
+        else:
+            plt.xlim(0,t+shift)
         
         ax3 = plt.subplot(3, lk, 2*lk + i+1)
-        plt.title("Acceleration ($\Delta$["+keys[i]+" by day)]")
+        plt.title("Acceleration  $\\left(\\frac{d^2f}{dt^2}\\right)$")
         plt.plot([0.0]*(t+1), "--", color="grey")
         k=0
         for f in d[key]:
             z = len(d[key][f])-tmax+t
+            if not sync:
+                xr = range(-z+1,1)
+            else:
+                xr = range(0,z)
             if z >= 2:
                 # accélération
-                myplot( ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)])
-                if ddgs[f][z-1]>=1.0:
-                    plt.text( z-1, ddgs[f][z-1], f, color=colors[k%lc], fontsize=6)
-            k+=1        
-        plt.ylim(bottom=1.0)
-        plt.xlim((0,t+5))
-            #if i==0:
-        #    plt.ylim(bottom=-20.0)
-        #else:
-        #    plt.ylim(bottom=-1200.0)
-
+                plt.plot( xr, ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)])
+                plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=6 )
+            k+=1
+        if log:
+            plt.yscale('symlog')
+        if not sync:
+            plt.xlim(-z+1,shift)
+        else:
+            plt.xlim(0,t+shift)
+            
         i=i+1
-        
+
+    #plt.subplots_adjust(right=0.5)
     plt.tight_layout()
     #handles, labels = ax.get_legend_handles_labels()
     #plt.figlegend(handles, labels, borderaxespad=0.0, loc='upper center', ncol=7)
     
     plt.subplots_adjust(top=0.92)
 
+
+
+anim_command = "convert -verbose -scale 80% -delay 10 -loop 0 "
+    
 
 def regularise(sync=False):
     
@@ -179,22 +200,21 @@ def regularise(sync=False):
 
     d = get_data_from_files()
     d = filter_by_var(d, "deaths", 10, sync=sync)
-    print(d)
     
     fic="smooth"
     if sync:
         fic="smooth_sync"
     for n in range(ns):
         print(sm[n])
-        trace(d, sm[n]) 
+        trace(d, sm[n], sync=sync) 
         plt.savefig("fig/"+fic+"_%02d.png"%n)
         plt.close('all')
 
     lns = [0]*4 + list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1))
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in lns ])
     print("Generate animations from : "+src)
-    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".gif" )
-    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".mp4" )
+    os.system( anim_command+src+" "+fic+".gif" )
+    os.system( anim_command+src+" "+fic+".mp4" )
 
 
 def evolution(sync=False):
@@ -211,15 +231,15 @@ def evolution(sync=False):
         fic="evolution_sync"
     for t in range(3,tmax+1):
         print(t)
-        trace(d, sm, t)
+        trace(d, sm, t, sync=sync)
         plt.savefig("fig/"+fic+"_%02d.png"%t)
         plt.close('all')
 
     ltmax = list( range( 3,tmax+1 ) ) + [tmax]*50
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in ltmax ])
     print("Generate animations : "+src)
-    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".gif" )
-    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".mp4" )
+    os.system( anim_command+src+" "+fic+".gif" )
+    os.system( anim_command+src+" "+fic+".mp4" )
 
     
 #### 
