@@ -10,7 +10,7 @@ import os
 
 
 
-keys = [ "deaths", "confirmed"] #, "recovered" ] # data to show
+keys = [ "deaths", "confirmed", "recovered" ] # data to show
 
 
 # pour charger les données à partir des fichiers csv
@@ -71,7 +71,6 @@ def smooth(y, n):
     y2 = y.copy()
     for i in range(n):
         y2 = [ y2[0] ] + [ (y2[i-1]+y2[i]+y2[i+1])/3.0 for i in range(1,len(y2)-1) ] + [ y2[-1] ]
-#        y2 = [ (y2[0]+y2[1])/2.0 ] + [ (y2[i-1]+y2[i]+y2[i+1])/3.0 for i in range(1,len(y2)-1) ] + [ (y2[-2]+y2[-1])/2.0 ]
     return y2
     
 
@@ -102,7 +101,7 @@ def trace(d, sm=0, t=-1, log=True ):
     i=0
     for key in keys:
 
-        g, dg, dgs, ddgs = dict(), dict(), dict(), dict()
+        g, gs, dg, dgs, ddgs = dict(), dict(), dict(), dict(), dict()
 
         for f in d[key]:
             
@@ -110,7 +109,10 @@ def trace(d, sm=0, t=-1, log=True ):
             if z>=2:
                 g[f] = d[key][f]     
                 dg[f] = [ 0.0 ] + [ g[f][j]-g[f][j-1]  for j in range(1, len(g[f])) ]
-                dgs[f] =  smooth( dg[f], sm)
+                dgs[f] =  smooth( dg[f], sm)  # one smooths dg
+                gs[f] = [ g[f][0] ]           # one then computes smoothed-g by intergrating smoothed-dg
+                for j in  range(1, len(g[f])):
+                    gs[f].append(gs[f][j-1] + dgs[f][j])
                 ddgs[f] = np.gradient( dgs[f] )
 
         ax1 = plt.subplot(3, lk, i+1)
@@ -119,10 +121,13 @@ def trace(d, sm=0, t=-1, log=True ):
         for f in d[key]:
             z = len(d[key][f])-tmax+t
             if z >= 2:
-                myplot(g[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
-                plt.text( z-1, g[f][z-1], f, color=colors[k%lc], fontsize=6 )
+                myplot(g[f][0:z], "+", color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
+                myplot(gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)] )
+                plt.text( z-1, gs[f][z-1], f, color=colors[k%lc], fontsize=6 )
             k+=1
         plt.ylim(bottom=10.0)
+        #if f=="confirmed":
+        #    plt.ylim(top=100000.0)
         plt.xlim((0,t+5))
         
         ax2 = plt.subplot(3, lk, lk + i+1)
@@ -188,8 +193,8 @@ def regularise(sync=False):
     lns = [0]*4 + list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1))
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in lns ])
     print("Generate animations from : "+src)
-    os.system( "convert -verbose -delay 10 -loop 0 "+src+" "+fic+".gif" )
-    os.system( "convert -verbose -delay 10 -loop 0 "+src+" "+fic+".mp4" )
+    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".gif" )
+    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".mp4" )
 
 
 def evolution(sync=False):
@@ -213,16 +218,16 @@ def evolution(sync=False):
     ltmax = list( range( 3,tmax+1 ) ) + [tmax]*50
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in ltmax ])
     print("Generate animations : "+src)
-    os.system( "convert -verbose -delay 10 -loop 0 "+src+" "+fic+".gif" )
-    os.system( "convert -verbose -delay 10 -loop 0 "+src+" "+fic+".mp4" )
+    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".gif" )
+    os.system( "convert -verbose -scale 70% -delay 10 -loop 0 "+src+" "+fic+".mp4" )
 
     
 #### 
 
 
-#regularise()
+regularise()
 regularise(True)
 
-#evolution()
+evolution()
 evolution(True)
 
