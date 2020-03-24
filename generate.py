@@ -10,14 +10,15 @@ import os
 
 
 
-keys = [ "deaths", "confirmed", "recovered" ] # data to show
+keys = [ "deaths", "confirmed"]#, "recovered" ] # data to show
 
 
 # pour charger les données à partir des fichiers csv
 
+
 def get_data_from_files(death_threshold = 10):
 
-    files = [ "time_series_19-covid-Deaths.csv", "time_series_19-covid-Confirmed.csv", "time_series_19-covid-Recovered.csv" ]
+    files = [ "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_global.csv" ]
         
     data2 = dict()
 
@@ -29,7 +30,9 @@ def get_data_from_files(death_threshold = 10):
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
             for row in csv_reader:
-                if line_count != 0:
+                if line_count == 0:
+                    day = row[-1]
+                else:
                     # reformat location
                     location = row[1]+"/"+row[0]
                     data = [ int(row[j]) for j in range(4,len(row))]
@@ -44,7 +47,7 @@ def get_data_from_files(death_threshold = 10):
                 line_count += 1
         i += 1
         
-    return(data2)
+    return(data2, day)
 
 
 def filter_by_var(data, var, threshold, sync=False):
@@ -66,16 +69,23 @@ def filter_by_var(data, var, threshold, sync=False):
     return(data2)
 
 
-def smooth(y, n):
 
+def smooth(y, n):
     y2 = y.copy()
     for i in range(n):
         y2 = [ y2[0] ] + [ (y2[i-1]+y2[i]+y2[i+1])/3.0 for i in range(1,len(y2)-1) ] + [ y2[-1] ]
     return y2
     
 
+def smooth2(y, n):
+    y2 = y.copy()
+    ly2 = len(y2)
+    y2 = [ np.mean( y2[ max(  0,i-n) : min(ly2-1,i+n)  ] ) for i in range(ly2) ]
+    return(y2)
+    
 
-def trace(d, sm=0, t=-1, log=True, sync=False ):
+
+def trace(d, sm=0, t=-1, log=True, sync=False, size=5 ):
 
     tmax = len(d["deaths"]["Hubei(China)"])  # max duration
     if t==-1:
@@ -85,11 +95,11 @@ def trace(d, sm=0, t=-1, log=True, sync=False ):
     
     day =  ( date(2020, 1, 21) + timedelta(days=t) ) 
     
-    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta","blue","red","green" ]
+    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta" ]
     lc = len(colors)
     linestyles = [ "-", "--", "-.", ":" ]
     
-    fig = plt.figure(figsize=(5*lk, 10))
+    fig = plt.figure(figsize=(size*lk, size*2))
     fig.suptitle(day)
 
     shift = 5
@@ -112,7 +122,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False ):
                 ddgs[f] = np.gradient( dgs[f] )
 
         ax1 = plt.subplot(3, lk, i+1)
-        plt.title( keys[i] + " $(f)$")
+        plt.title( "Total number of "+keys[i] )
         k=0
         for f in d[key]:
             z = len(d[key][f])-tmax+t
@@ -133,9 +143,10 @@ def trace(d, sm=0, t=-1, log=True, sync=False ):
             plt.xlim(-z+1,shift)
         else:
             plt.xlim(0,t+shift)
-        
+        plt.grid(True,which="both")
+            
         ax2 = plt.subplot(3, lk, lk + i+1)
-        plt.title(keys[i]+" by day $\\left(\\frac{df}{dt}\\right)$")
+        plt.title(keys[i]+" by day $\\left(\\frac{\Delta "+keys[i]+"}{\Delta t}\\right)$")
         k=0
         for f in d[key]:
             z = len(d[key][f])-tmax+t
@@ -156,11 +167,25 @@ def trace(d, sm=0, t=-1, log=True, sync=False ):
             plt.xlim(-z+1,shift)
         else:
             plt.xlim(0,t+shift)
+        plt.grid(True,which="both")
+        
         
         ax3 = plt.subplot(3, lk, 2*lk + i+1)
-        plt.title("Acceleration  $\\left(\\frac{d^2f}{dt^2}\\right)$")
+        plt.title("Acceleration of "+keys[i]+" $\\left(\\frac{\Delta^2 "+keys[i]+"}{\Delta t^2}\\right)$")
         plt.plot([0.0]*(t+1), "--", color="grey")
         k=0
+
+        plt.grid(True,which="both")
+        #ys = list(range(-10,0))+list(range(1,11))+list(range(10,110,10)) 
+        if not sync:
+            plt.xlim(-z+1,shift)
+            #for y in ys:
+            #    plt.hlines(y, -t+1,shift+1, "lightgrey" )
+        else:
+            plt.xlim(0,t+shift)
+            #for y in ys:
+            #    plt.hlines(y, 0,t+shift+1, "lightgrey" )
+
         for f in d[key]:
             z = len(d[key][f])-tmax+t
             if not sync:
@@ -174,10 +199,8 @@ def trace(d, sm=0, t=-1, log=True, sync=False ):
             k+=1
         if log:
             plt.yscale('symlog')
-        if not sync:
-            plt.xlim(-z+1,shift)
-        else:
-            plt.xlim(0,t+shift)
+        
+        
             
         i=i+1
 
@@ -194,11 +217,13 @@ anim_command = "convert -verbose -scale 80% -delay 10 -loop 0 "
     
 
 def regularise(sync=False):
+
+    print("Graphs for several smoothing parameters, sync=",sync)
     
     ns = 15
     sm = range(ns)
 
-    d = get_data_from_files()
+    d,_ = get_data_from_files()
     d = filter_by_var(d, "deaths", 10, sync=sync)
     
     fic="smooth"
@@ -218,10 +243,12 @@ def regularise(sync=False):
 
 
 def evolution(sync=False):
-
+    
+    print("Graphs for several dates, sync=",sync)
+    
     sm = 15
     
-    d = get_data_from_files()
+    d,_ = get_data_from_files()
     d = filter_by_var(d, "deaths", 10, sync=sync)
 
     tmax = len(d["deaths"]["Hubei(China)"])  # max duration
@@ -241,6 +268,21 @@ def evolution(sync=False):
     os.system( anim_command+src+" "+fic+".gif" )
     os.system( anim_command+src+" "+fic+".mp4" )
 
+
+
+def curve(sync=False):
+    
+    d,day = get_data_from_files()
+    d = filter_by_var(d, "deaths", 10, sync=sync)
+
+    print("Curve for day "+day)
+    
+    trace(d, 15, sync=sync, size=8)
+    plt.suptitle("Day 0 = "+day)
+    
+    plt.savefig(day.replace("/","_")+".pdf")
+
+
     
 #### 
 
@@ -251,3 +293,5 @@ regularise(True)
 evolution()
 evolution(True)
 
+
+curve()
