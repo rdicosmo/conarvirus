@@ -1,9 +1,11 @@
 
 
+
 ## Evolution of the number of deaths and the number of confirmed cases (depends on the policy of each country)
 
 
-### Start date = 2020/1/22
+### Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19), start date = 2020/1/22
+
 
 ![](./fig/smooth_14.png)
 

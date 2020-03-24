@@ -78,9 +78,9 @@ def smooth(y, n):
     
 
 
-def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
+def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
 
-    lw=2.0
+    lw=1.5
     
     tmax = len(d["deaths"]["Hubei(China)"])  # max duration
     if t==-1:
@@ -94,7 +94,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
     lc = len(colors)
     linestyles = [ "-", "--", "-.", ":" ]
     
-    fig = plt.figure(figsize=(size*lk, size*2))
+    fig = plt.figure(figsize=(size*4,size*lk))
     fig.suptitle(day)
 
     shift = 5
@@ -116,7 +116,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
                     gs[f].append(gs[f][j-1] + dgs[f][j])
                 ddgs[f] = np.gradient( dgs[f] )
 
-        ax1 = plt.subplot(3, lk, i+1)
+        ax1 = plt.subplot(lk, 3, 3*i + 1)
         plt.title( "Total number of "+keys[i] )
         k=0
         for f in d[key]:
@@ -128,8 +128,8 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
             if z >= 2:
                 plt.plot( xr, g[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5 )
                 plt.plot( xr, gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
-                if gs[f][z-1]>10.0:
-                    plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=8 )
+                if gs[f][z-1] > 10.0:
+                    plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=7 )
             k+=1
         if log:
             plt.yscale('log')
@@ -140,7 +140,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
             plt.xlim(0,t+shift)
         plt.grid(True,which="both")
             
-        ax2 = plt.subplot(3, lk, lk + i+1)
+        ax2 = plt.subplot(lk, 3, 3*i + 2)
         plt.title(keys[i]+" by day $\\left(\\frac{\Delta "+keys[i]+"}{\Delta t}\\right)$")
         k=0
         for f in d[key]:
@@ -150,10 +150,10 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
             else:
                 xr = range(0,z)
             if z >= 2:
-                plt.plot(xr, dg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
-                plt.plot(xr, dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
+                plt.plot( xr, dg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
+                plt.plot( xr, dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
                 if dgs[f][z-1]>=1.0:
-                    plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=8 )
+                    plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=7 )
             k+=1
         plt.ylim(bottom=1.0)
         if log:
@@ -165,7 +165,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
         plt.grid(True,which="both")
         
         
-        ax3 = plt.subplot(3, lk, 2*lk + i+1)
+        ax3 = plt.subplot(lk, 3, 3*i + 3)
         plt.title("Acceleration of "+keys[i]+" $\\left(\\frac{\Delta^2 "+keys[i]+"}{(\Delta t)^2}\\right)$")
         plt.plot([0.0]*(t+1), "--", color="grey", lw=lw)
         k=0
@@ -190,7 +190,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=7 ):
             if z >= 2:
                 # accélération
                 plt.plot( xr, ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw)
-                plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=8 )
+                plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=7 )
             k+=1
         if log:
             plt.yscale('symlog')
@@ -279,7 +279,7 @@ def curve(sync=False):
     
 #### 
 
-dpi = 100
+dpi = 130
 
 regularise()
 regularise(True)
@@ -287,4 +287,4 @@ regularise(True)
 evolution()
 evolution(True)
 
-curve()
+#curve()
