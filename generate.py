@@ -83,15 +83,14 @@ def integ(f, a=0): # discrete integral
 def smooth(y, n, c=3.0):
     y2 = y.copy()
     for i in range(n):
-        #y2 = [ ( y2[0]*(c-1) + y2[1] )/c ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ (y2[len(y)-1]*(c-1) + y2[len(y)-2])/c ]
-        y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ y2[-1] ]
+        y2 = [ ( y2[0]*(c-1) + y2[1] )/c ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ (y2[len(y)-1]*(c-1) + y2[len(y)-2])/c ]
+        #y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ y2[-1] ]
     return y2
     
 
 
-def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
+def trace(d, sm=0, t=-1, log=True, sync=False, size=4, focus=[] ):
 
-    lw=1.5
     
     tmax = len(d["deaths"]["Hubei(China)"])  # max duration
     if t==-1:
@@ -109,8 +108,10 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
     fig.suptitle(str(day)+" (smooth=%d)"%sm)
 
     shift = 5
-
+    fs= 7
+    
     i=0
+    
     for key in keys:
 
         g, gs, dg, dgs, ddg, ddgs = dict(), dict(), dict(), dict(), dict(), dict()
@@ -118,21 +119,27 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
         for f in d[key]:
             
             z = len(d[key][f])-tmax+t
-            if z>=2:
+            if z >= 2:
                 
                 g[f] = d[key][f]     
                 dg[f] = diff( g[f] )
-                
                 ddg[f] = diff( dg[f] )
-
-                gs[f] = smooth( g[f], sm )
+                
                 dgs[f] = smooth( dg[f], sm )
                 ddgs[f] = smooth( ddg[f], sm )
+                gs[f] = smooth( g[f], sm )
+                
                 
         ax1 = plt.subplot(lk, 3, 3*i + 1)
         plt.title( "Total number of "+keys[i] )
         k=0
         for f in d[key]:
+
+            if f in focus:
+                lw=2
+            else:
+                lw=1
+
             z = len(d[key][f])-tmax+t
             if not sync:
                 xr = range(-z+1,1)
@@ -142,7 +149,10 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
                 plt.plot( xr, g[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5 )
                 plt.plot( xr, gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
                 if gs[f][z-1] > 10.0:
-                    plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=7 )
+                    if f in focus:
+                        plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=fs, bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]) )
+                    else:
+                        plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=fs )
             k+=1
         if log:
             plt.yscale('log')
@@ -157,6 +167,12 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
         plt.title(keys[i]+" by day $\\left(\\frac{\Delta "+keys[i]+"}{\Delta t}\\right)$")
         k=0
         for f in d[key]:
+
+            if f in focus:
+                lw=2
+            else:
+                lw=1
+                
             z = len(d[key][f])-tmax+t
             if not sync:
                 xr = range(-z+1,1)
@@ -166,7 +182,10 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
                 plt.plot( xr, dg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
                 plt.plot( xr, dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
                 if dgs[f][z-1]>=1.0:
-                    plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=7 )
+                    if f in focus:
+                        plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=fs, bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]) )
+                    else:
+                        plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=fs )
             k+=1
         plt.ylim(bottom=1.0)
         if log:
@@ -195,16 +214,24 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
             #    plt.hlines(y, 0,t+shift+1, "lightgrey" )
 
         for f in d[key]:
+
+            if f in focus:
+                lw=2
+            else:
+                lw=1
+                
             z = len(d[key][f])-tmax+t
             if not sync:
                 xr = range(-z+1,1)
             else:
                 xr = range(0,z)
             if z >= 2:
-                # accélération
-                plt.plot( xr, ddg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
+                #plt.plot( xr, ddg[f][0:z-2], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
                 plt.plot( xr, ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw)
-                plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=7 )
+                if f in focus:
+                    plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=fs,  bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]))
+                else:
+                    plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=fs )
             k+=1
         if log:
             plt.yscale('symlog')
@@ -221,7 +248,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
 
 
     
-def regularise(sync=False):
+def regularise(sync=False,focus=[]):
 
     print("Graphs for several smoothing parameters, sync=",sync)
     
@@ -236,20 +263,20 @@ def regularise(sync=False):
         fic="smooth_sync"
     for n in range(ns):
         print(sm[n])
-        trace(d, sm[n], sync=sync) 
+        trace(d, sm[n], sync=sync, focus=focus) 
         plt.savefig("fig/"+fic+"_%02d.png"%n, dpi=dpi)
         plt.close('all')
 
-    anim_command = "convert -verbose -delay 50 -loop 0 "
+    anim_command = "convert -verbose -delay 20 -loop 0 "
         
-    lns = [0]*4 + list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1))
+    lns = list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1)) + [0]*4
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in lns ])
     print("Generate animations from : "+src)
     os.system( anim_command+src+" "+fic+".mp4" )
     os.system( anim_command+src+" "+fic+".gif" )
 
 
-def evolution(sync=False):
+def evolution(sync=False,focus=[]):
     
     print("Graphs for several dates, sync=",sync)
     
@@ -265,7 +292,7 @@ def evolution(sync=False):
         fic="evolution_sync"
     for t in range(3,tmax+1):
         print(t)
-        trace(d, sm, t, sync=sync)
+        trace(d, sm, t, sync=sync, focus=focus)
         plt.savefig("fig/"+fic+"_%02d.png"%t, dpi=dpi)
         plt.close('all')
 
@@ -279,14 +306,14 @@ def evolution(sync=False):
 
 
 
-def curve(sync=False, sm=15):
+def curve(sync=False, sm=15, focus=[]):
     
     d,day = get_data_from_files()
     d = filter_by_var(d, "deaths", 10, sync=sync)
 
     print("Curve for day "+day)
     
-    trace(d, sm, sync=sync)
+    trace(d, sm, sync=sync, focus=focus)
     plt.suptitle("Day 0 = "+str(day)+" (smooth=%d)"%sm )
     
     plt.savefig(str(day).replace("/","_")+".pdf", dpi=dpi)
@@ -294,13 +321,15 @@ def curve(sync=False, sm=15):
     
 #### 
 
-dpi = 130
+dpi = 100
 
-#curve()
+focus=["Hubei(China)","France","Italy","Spain","US","Germany"]
 
-#regularise()
-#regularise(True)
+curve(focus=focus)
 
-evolution()
-evolution(True)
+regularise(focus=focus)
+regularise(True,focus=focus)
+
+evolution(focus=focus)
+evolution(True,focus=focus)
 
