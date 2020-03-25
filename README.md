@@ -1,33 +1,37 @@
 
 
 
-## Evolution of the number of deaths and the number of confirmed cases (depends on the policy of each country)
+## Number of deaths and confirmed cases (with visual representation of the speed and acceleration)
+
+Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19), one provides groups of 2 by 3 graphs:
+
+- line 1 corresponds to the number of deaths; line 2 to the number of confirmed cases ;
+- column 1 gives the figures, column 2 the speed, and column 3 the acceleration ;
+- each curve in these graphs corresponds to one country or region, and is a smoothed representation of original data.
 
 
-### Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19), start date = 2020/1/22
+### Curves
 
-
-![](./fig/smooth_14.png)
+![](./fig/smooth_15.png)
 
 ### Curves synchronized (start when number of deaths >=10 )
 
-![](./fig/smooth_sync_14.png)
+![](./fig/smooth_sync_15.png)
 
 
-## Evolution through time (animations)
-
-### Start date = 2020/1/22
+### Animation
 
 ![](./evolution.gif)
 
-### Curves synchronized (start when number of deaths >=10 )
+### Animation synchronized (start when number of deaths >=10 ) 
 
 ![](./evolution_sync.gif)
 
 
 ## From raw data to the above curves (smoothing)
 
-### Start date = 2020/1/22
+
+### Curves in time
 
 ![](./smooth.gif)
 
