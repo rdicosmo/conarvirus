@@ -69,11 +69,22 @@ def filter_by_var(data, var, threshold, sync=False):
     return(data2)
 
 
+def diff(f): # discrete differential
+    return( [ 0.0 ] + [ f[j]-f[j-1]  for j in range(1, len(f)) ] )
 
-def smooth(y, n):
+    
+def integ(f, a=0): # discrete integral
+    g = [ a ]
+    for j in range(1, len(f)):
+        g.append( g[j-1]+f[j] )
+    return(g)
+        
+
+def smooth(y, n, c=3.0):
     y2 = y.copy()
     for i in range(n):
-        y2 = [ y2[0] ] + [ (y2[i-1]+y2[i]+y2[i+1])/3.0 for i in range(1,len(y2)-1) ] + [ y2[-1] ]
+        #y2 = [ ( y2[0]*(c-1) + y2[1] )/c ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ (y2[len(y)-1]*(c-1) + y2[len(y)-2])/c ]
+        y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ y2[-1] ]
     return y2
     
 
@@ -95,27 +106,29 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
     linestyles = [ "-", "--", "-.", ":" ]
     
     fig = plt.figure(figsize=(size*4,size*lk))
-    fig.suptitle(day)
+    fig.suptitle(str(day)+" (smooth=%d)"%sm)
 
     shift = 5
 
     i=0
     for key in keys:
 
-        g, gs, dg, dgs, ddgs = dict(), dict(), dict(), dict(), dict()
+        g, gs, dg, dgs, ddg, ddgs = dict(), dict(), dict(), dict(), dict(), dict()
 
         for f in d[key]:
             
             z = len(d[key][f])-tmax+t
             if z>=2:
+                
                 g[f] = d[key][f]     
-                dg[f] = [ 0.0 ] + [ g[f][j]-g[f][j-1]  for j in range(1, len(g[f])) ]
-                dgs[f] =  smooth( dg[f], sm)  # one smooths dg
-                gs[f] = [ g[f][0] ]           # one then computes smoothed-g by intergrating smoothed-dg
-                for j in  range(1, len(g[f])):
-                    gs[f].append(gs[f][j-1] + dgs[f][j])
-                ddgs[f] = np.gradient( dgs[f] )
+                dg[f] = diff( g[f] )
+                
+                ddg[f] = diff( dg[f] )
 
+                gs[f] = smooth( g[f], sm )
+                dgs[f] = smooth( dg[f], sm )
+                ddgs[f] = smooth( ddg[f], sm )
+                
         ax1 = plt.subplot(lk, 3, 3*i + 1)
         plt.title( "Total number of "+keys[i] )
         k=0
@@ -189,6 +202,7 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
                 xr = range(0,z)
             if z >= 2:
                 # accélération
+                plt.plot( xr, ddg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
                 plt.plot( xr, ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw)
                 plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=7 )
             k+=1
@@ -206,14 +220,12 @@ def trace(d, sm=0, t=-1, log=True, sync=False, size=4.5 ):
 
 
 
-anim_command = "convert -verbose -delay 10 -loop 0 "
     
-
 def regularise(sync=False):
 
     print("Graphs for several smoothing parameters, sync=",sync)
     
-    ns = 15
+    ns = 16
     sm = range(ns)
 
     d,_ = get_data_from_files()
@@ -228,6 +240,8 @@ def regularise(sync=False):
         plt.savefig("fig/"+fic+"_%02d.png"%n, dpi=dpi)
         plt.close('all')
 
+    anim_command = "convert -verbose -delay 50 -loop 0 "
+        
     lns = [0]*4 + list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1))
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in lns ])
     print("Generate animations from : "+src)
@@ -255,6 +269,8 @@ def evolution(sync=False):
         plt.savefig("fig/"+fic+"_%02d.png"%t, dpi=dpi)
         plt.close('all')
 
+    anim_command = "convert -verbose -delay 10 -loop 0 "
+        
     ltmax = list( range( 3,tmax ) ) 
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in ltmax ])
     print("Generate animations : "+src)
@@ -263,28 +279,28 @@ def evolution(sync=False):
 
 
 
-def curve(sync=False):
+def curve(sync=False, sm=15):
     
     d,day = get_data_from_files()
     d = filter_by_var(d, "deaths", 10, sync=sync)
 
     print("Curve for day "+day)
     
-    trace(d, 15, sync=sync)
-    plt.suptitle("Day 0 = "+day)
+    trace(d, sm, sync=sync)
+    plt.suptitle("Day 0 = "+str(day)+" (smooth=%d)"%sm )
     
-    plt.savefig(day.replace("/","_")+".png", dpi=dpi)
-
+    plt.savefig(str(day).replace("/","_")+".pdf", dpi=dpi)
 
     
 #### 
 
 dpi = 130
 
-regularise()
-regularise(True)
+#curve()
+
+#regularise()
+#regularise(True)
 
 evolution()
 evolution(True)
 
-#curve()
