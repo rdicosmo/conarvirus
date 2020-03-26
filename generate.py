@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 
 import matplotlib.pyplot as plt
-from scipy.interpolate import UnivariateSpline
-from scipy.signal import savgol_filter
 from datetime import date,timedelta
 import numpy as np
 import csv
@@ -10,20 +8,24 @@ import os
 
 
 
-keys = [ "deaths", "confirmed"] # data to show
+#############################
+# Loading and filtering data
+
+def reformat_location(location):
+
+    l1,l2=location.split("/")
+    if l2=="" or l1==l2:
+        return l1
+    else:
+        return l2+"("+l1+")"
 
 
-# pour charger les données à partir des fichiers csv
+def get_data_from_files():
 
+    files = [ "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_global.csv" ] # files where to fetch data
 
-def get_data_from_files(death_threshold = 10):
-
-    files = [ "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_global.csv" ]
-        
     data2 = dict()
-
     i=0
-
     for key in keys:
         data2[key]=dict()
         with open(files[i]) as csv_file:
@@ -31,30 +33,38 @@ def get_data_from_files(death_threshold = 10):
             line_count = 0
             for row in csv_reader:
                 if line_count == 0:
-                    day = row[-1]
+                    days = row[4:]
                 else:
                     # reformat location
                     location = row[1]+"/"+row[0]
+                    p = reformat_location(location)
                     data = [ int(row[j]) for j in range(4,len(row))]
-                    l1,l2=location.split("/")
-                    if l2=="" or l1==l2:
-                        p = l1
-                    else:
-                        p = l2+"("+l1+")"
                     # store data
-                    data2[key][p] = data
-                            
+                    data2[key][p] = data                            
                 line_count += 1
         i += 1
         
-    return(data2, day)
+    return(data2, days)
 
 
-def filter_by_var(data, var, threshold, sync=False):
+def filter_by_dates(data, days, begin, end):
 
-    data2=dict()
+    data2 = dict()
+    a = days.index(begin)
+    b = days.index(end)
     for k in data:
-        data2[k]=dict()
+        data2[k] = dict()
+        for p in data[k]:
+            data2[k][p] = data[k][p][a:b+1]
+            
+    return(data2, days[a:b+1])
+
+
+def filter_by_var_threshold(data, var, threshold, sync):
+
+    data2, xr = dict(), dict()
+    for k in data:
+        data2[k], xr[k] = dict(), dict()
         for p in data[k]:
             d = data[var][p]
             if max(d) >= threshold:
@@ -63,211 +73,188 @@ def filter_by_var(data, var, threshold, sync=False):
                 if len(d2) >= 2:
                     if sync:
                         data2[k][p] = d2
+                        xr[k][p] = range( len(d2) )
                     else:
                         data2[k][p] = data[k][p]
+                        xr[k][p] = range( -len(data2[k][p])+1, 1 )
+                
+    return(data2, xr)
 
-    return(data2)
+        
 
+#####################################
+# Data smoothing and differentiation
 
-def diff(f): # discrete differential
+def diff(f): # discrete differentiation
     return( [ 0.0 ] + [ f[j]-f[j-1]  for j in range(1, len(f)) ] )
 
-    
-def integ(f, a=0): # discrete integral
-    g = [ a ]
-    for j in range(1, len(f)):
-        g.append( g[j-1]+f[j] )
-    return(g)
-        
-
-def smooth(y, n, c=3.0):
+def smooth(y, smooth_parameter, c=3.0 ):  # local linear smoothing
     y2 = y.copy()
-    for i in range(n):
-        y2 = [ ( y2[0]*(c-1) + y2[1] )/c ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ (y2[len(y)-1]*(c-1) + y2[len(y)-2])/c ]
-        #y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y)-1) ] + [ y2[-1] ]
+    for i in range(smooth_parameter):
+        y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y2)-1) ] + [ y2[-1] ]
     return y2
-    
+
+def smooth_speed_acceleration(data, smooth_parameter):
+    #
+    gs, dgs, ddgs = dict(), dict(), dict()
+    for key in keys:
+        gs[key], dgs[key], ddgs[key] = dict(), dict(), dict()
+        for f in data[key]:
+            gs[key][f] =  list(map(lambda x: np.exp(x)-1, 
+                              smooth(
+                                  list(map(lambda x: np.log(1+x), data[key][f])), smooth_parameter   # smoothing of the log(1+x)-transformed function
+                              )
+            ))
+            dgs[key][f] = diff( gs[key][f] )   # speed
+            ddgs[key][f] = diff( dgs[key][f] ) # acceleration
+            
+    return gs,dgs,ddgs
 
 
-def trace(d, sm=0, t=-1, log=True, sync=False, size=4, focus=[] ):
+#########################
+# Functions to plot data
 
-    
-    tmax = len(d["deaths"]["Hubei(China)"])  # max duration
-    if t==-1:
-        t = tmax
-        
-    lk = len(keys)
-    
-    day =  ( date(2020, 1, 21) + timedelta(days=t) ) 
-    
-    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta" ]
+def style_args(data, focus):   # define style parameters for plot and text (depending on focus or not)
+
+    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta", "red" ]
     lc = len(colors)
     linestyles = [ "-", "--", "-.", ":" ]
-    
+
+    arg_plot, arg_text = dict(), dict()
+    for key in data:
+        arg_plot[key], arg_text[key] = dict(), dict()
+        k = 0
+        for f in data[key]:
+            
+            arg_plot[key][f], arg_text[key][f] = dict(), dict()
+
+            arg_plot[key][f]["color"] = colors[k%lc]
+            arg_plot[key][f]["linestyle"] = linestyles[int(k/lc)]
+
+            arg_text[key][f]["color"] = colors[k%lc]
+            
+            if f in focus:
+                arg_plot[key][f]["lw"]=2
+                arg_text[key][f]["bbox"] = dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc])
+            else:
+                arg_plot[key][f]["lw"]=1
+
+            k+=1
+            
+    return arg_plot, arg_text
+
+
+def plot(xr, g, gs, dgs, ddgs, arg_plot, arg_text, tmax, size=4.5 ):
+
+    lk=len(keys)
+
     fig = plt.figure(figsize=(size*4,size*lk))
-    fig.suptitle(str(day)+" (smooth=%d)"%sm)
-
-    shift = 5
-    fs= 7
     
-    i=0
-    
-    for key in keys:
+    for i in range(lk):
+        key = keys[i]
+        l = 0
+        for (title, fc, yscale, ylim) in [ ("Total number of "+key, gs, 'log', 10.0),
+                                                ("Number of "+key+" by day $\\left(\\frac{\Delta "+key+"}{\Delta t}\\right)$", dgs, 'log', 1.0),
+                                                ("Acceleration of the number of "+key+" $\\left(\\frac{\Delta^2 "+key+"}{(\Delta t)^2}\\right)$", ddgs, 'symlog', 0)
+                                                ]: 
 
-        g, gs, dg, dgs, ddg, ddgs = dict(), dict(), dict(), dict(), dict(), dict()
+            ax = plt.subplot( lk, 3, 3*i + l+1 )
+            plt.title(title)
 
-        for f in d[key]:
+            for f in fc[key]:
+                
+                if l==0:
+                    lw, color = arg_plot[key][f]["lw"], arg_plot[key][f]["color"]  # same color and width as graph
+                    plt.plot( xr[key][f], g[key][f], "+", mew=lw/2.0, ms=lw*2.5, color=color )
+
+                if len(xr[key][f]) > l:
+                    plt.plot( xr[key][f][l:], fc[key][f][l:], **arg_plot[key][f] )  
+                    if fc[key][f][-1] > ylim or yscale!="log":
+                        plt.text( xr[key][f][-1] , fc[key][f][-1], f, **arg_text[key][f] )
+                
+            plt.yscale(yscale)
+            if yscale=="log":
+                plt.ylim(bottom = ylim)
+                
+            x1,_ = ax.get_xlim()
+            x2 = x1 + tmax - l
+            plt.xlim(x1,x2+(x2-x1)/5.0)
+
+            plt.grid(True,which="both")
+            l+=1
             
-            z = len(d[key][f])-tmax+t
-            if z >= 2:
-                
-                g[f] = d[key][f]     
-                dg[f] = diff( g[f] )
-                ddg[f] = diff( dg[f] )
-                
-                dgs[f] = smooth( dg[f], sm )
-                ddgs[f] = smooth( ddg[f], sm )
-                gs[f] = smooth( g[f], sm )
-                
-                
-        ax1 = plt.subplot(lk, 3, 3*i + 1)
-        plt.title( "Total number of "+keys[i] )
-        k=0
-        for f in d[key]:
-
-            if f in focus:
-                lw=2
-            else:
-                lw=1
-
-            z = len(d[key][f])-tmax+t
-            if not sync:
-                xr = range(-z+1,1)
-            else:
-                xr = range(0,z)
-            if z >= 2:
-                plt.plot( xr, g[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5 )
-                plt.plot( xr, gs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
-                if gs[f][z-1] > 10.0:
-                    if f in focus:
-                        plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=fs, bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]) )
-                    else:
-                        plt.text( xr[-1] , gs[f][z-1], f, color=colors[k%lc], fontsize=fs )
-            k+=1
-        if log:
-            plt.yscale('log')
-            plt.ylim(bottom=10.0)
-        if not sync:
-            plt.xlim(-z+1,shift)
-        else:
-            plt.xlim(0,t+shift)
-        plt.grid(True,which="both")
-            
-        ax2 = plt.subplot(lk, 3, 3*i + 2)
-        plt.title(keys[i]+" by day $\\left(\\frac{\Delta "+keys[i]+"}{\Delta t}\\right)$")
-        k=0
-        for f in d[key]:
-
-            if f in focus:
-                lw=2
-            else:
-                lw=1
-                
-            z = len(d[key][f])-tmax+t
-            if not sync:
-                xr = range(-z+1,1)
-            else:
-                xr = range(0,z)
-            if z >= 2:
-                plt.plot( xr, dg[f][0:z], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
-                plt.plot( xr, dgs[f][0:z], color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw )
-                if dgs[f][z-1]>=1.0:
-                    if f in focus:
-                        plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=fs, bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]) )
-                    else:
-                        plt.text( xr[-1], dgs[f][z-1], f, color=colors[k%lc], fontsize=fs )
-            k+=1
-        plt.ylim(bottom=1.0)
-        if log:
-            plt.yscale('log')
-        if not sync:
-            plt.xlim(-z+1,shift)
-        else:
-            plt.xlim(0,t+shift)
-        plt.grid(True,which="both")
-        
-        
-        ax3 = plt.subplot(lk, 3, 3*i + 3)
-        plt.title("Acceleration of "+keys[i]+" $\\left(\\frac{\Delta^2 "+keys[i]+"}{(\Delta t)^2}\\right)$")
-        plt.plot([0.0]*(t+1), "--", color="grey", lw=lw)
-        k=0
-
-        plt.grid(True,which="both")
-        #ys = list(range(-10,0))+list(range(1,11))+list(range(10,110,10)) 
-        if not sync:
-            plt.xlim(-z+1,shift)
-            #for y in ys:
-            #    plt.hlines(y, -t+1,shift+1, "lightgrey" )
-        else:
-            plt.xlim(0,t+shift)
-            #for y in ys:
-            #    plt.hlines(y, 0,t+shift+1, "lightgrey" )
-
-        for f in d[key]:
-
-            if f in focus:
-                lw=2
-            else:
-                lw=1
-                
-            z = len(d[key][f])-tmax+t
-            if not sync:
-                xr = range(-z+1,1)
-            else:
-                xr = range(0,z)
-            if z >= 2:
-                #plt.plot( xr, ddg[f][0:z-2], "+", color=colors[k%lc], mew=lw/2., ms=lw*1.5)
-                plt.plot( xr, ddgs[f][0:z], label=f, color=colors[k%lc], linestyle=linestyles[int(k/lc)], lw=lw)
-                if f in focus:
-                    plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=fs,  bbox=dict(facecolor='white', alpha=0.5, boxstyle="round", edgecolor=colors[k%lc]))
-                else:
-                    plt.text( xr[-1], ddgs[f][z-1], f, color=colors[k%lc], fontsize=fs )
-            k+=1
-        if log:
-            plt.yscale('symlog')
-                    
-        i=i+1
-
-    #plt.subplots_adjust(right=0.5)
-    plt.tight_layout()
-    #handles, labels = ax.get_legend_handles_labels()
-    #plt.figlegend(handles, labels, borderaxespad=0.0, loc='upper center', ncol=7)
-    
+    plt.tight_layout()    
     plt.subplots_adjust(top=0.92)
 
+    return(fig)
 
 
+#########################################
+#### Main function
+
+
+# Common part
+
+def prepare_data(sync=False, focus=[], begin="", end=""):
+
+    data, days = get_data_from_files()
     
-def regularise(sync=False,focus=[]):
+    if begin=="":
+        begin = days[0]
+    if end=="":
+        end = days[-1]
+    
+    data, days = filter_by_dates(data, days, begin, end) 
+    data, xr = filter_by_var_threshold(data, "deaths", 10, sync=sync)
 
+    tmax = len(data["deaths"]["Hubei(China)"]) # longest sequence
+    
+    arg_plot, arg_text = style_args(data, focus)
+
+    return data, days, xr, arg_plot, arg_text, tmax
+    
+
+
+
+def curve(sync=False,focus=[], smooth_parameter=15, begin="", end=""):
+
+    data, days, xr, arg_plot, arg_text, tmax = prepare_data(sync, focus, begin, end)
+
+    day = days[-1]
+    print("Generating graphs for day "+day+", sync=",sync)
+    gs, dgs, ddgs = smooth_speed_acceleration(data, smooth_parameter)
+    fig = plot(xr, data, gs, dgs, ddgs, arg_plot, arg_text, tmax)
+    plt.suptitle(str(day))
+
+    filename = str(day).replace("/","_")
+    if sync:
+        filename += "_sync"
+    plt.savefig(filename+".png", dpi=dpi)
+
+
+
+def regularise_anim(sync=False,focus=[],smooth_parameter=15, begin="", end=""):
+
+    data, days, xr, arg_plot, arg_text, tmax = prepare_data(sync, focus, begin, end)
+    day = days[-1]
     print("Graphs for several smoothing parameters, sync=",sync)
     
-    ns = 16
-    sm = range(ns)
+    smooth_parameters = range(smooth_parameter + 1)
 
-    d,_ = get_data_from_files()
-    d = filter_by_var(d, "deaths", 10, sync=sync)
-    
-    fic="smooth"
     if sync:
         fic="smooth_sync"
+    else:
+        fic="smooth"
+    ns = len(smooth_parameters)
     for n in range(ns):
-        print(sm[n])
-        trace(d, sm[n], sync=sync, focus=focus) 
+        print("Smooth parameter:",smooth_parameters[n])
+        gs, dgs, ddgs = smooth_speed_acceleration(data, n)
+        fig = plot(xr, data, gs, dgs, ddgs, arg_plot, arg_text, tmax)
+        plt.suptitle(str(day)+", smooth="+str(n))
         plt.savefig("fig/"+fic+"_%02d.png"%n, dpi=dpi)
         plt.close('all')
 
-    anim_command = "convert -verbose -delay 20 -loop 0 "
+    anim_command = "convert -verbose -delay 15 -loop 0 "
         
     lns = list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1)) + [0]*4
     src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in lns ])
@@ -276,60 +263,69 @@ def regularise(sync=False,focus=[]):
     os.system( anim_command+src+" "+fic+".gif" )
 
 
-def evolution(sync=False,focus=[]):
     
-    print("Graphs for several dates, sync=",sync)
-    
-    sm = 15
-    
-    d,_ = get_data_from_files()
-    d = filter_by_var(d, "deaths", 10, sync=sync)
+def evolution_anim(sync=False,focus=[],begin="",end=""):
 
-    tmax = len(d["deaths"]["Hubei(China)"])  # max duration
+    print("Graphs for several dates, sync=",sync)
+
+    data, days, xr, arg_plot, arg_text, tmax = prepare_data(sync, focus, begin, end)
     
-    fic="evolution"
+    smooth_parameter = 15
+    gs, dgs, ddgs = smooth_speed_acceleration(data, smooth_parameter)
+    
+    filename="evolution"
     if sync:
-        fic="evolution_sync"
-    for t in range(3,tmax+1):
-        print(t)
-        trace(d, sm, t, sync=sync, focus=focus)
-        plt.savefig("fig/"+fic+"_%02d.png"%t, dpi=dpi)
+        filename="evolution_sync"
+        
+    for t in range(0,tmax):
+        
+        print("t=",t,"day=",days[t])
+
+        # Crop all data 
+        data2, xr2, gs2, dgs2, ddgs2 = dict(), dict(), dict(), dict(), dict() 
+        for key in keys:
+            data2[key], xr2[key], gs2[key], dgs2[key], ddgs2[key] = dict(), dict(), dict(), dict(), dict()
+            for f in data[key]:
+
+                z = max(0, len(data[key][f]) - tmax + t + 1)
+                data2[key][f] = data[key][f][0:z]
+                xr2[key][f] = xr[key][f][0:z]
+                gs2[key][f] = gs[key][f][0:z]
+                dgs2[key][f] = dgs[key][f][0:z]
+                ddgs2[key][f] = ddgs[key][f][0:z]
+                
+        fig = plot(xr2, data2, gs2, dgs2, ddgs2, arg_plot, arg_text, tmax)
+        plt.suptitle(str(days[t]))
+        plt.savefig("fig/"+filename+"_%02d.png"%t, dpi=dpi)
         plt.close('all')
 
     anim_command = "convert -verbose -delay 10 -loop 0 "
         
-    ltmax = list( range( 3,tmax ) ) 
-    src = " ".join([ "fig/"+fic+"_%02d.png"%i for i in ltmax ])
+    ltmax = list( range( 3,tmax-1 ) ) 
+    src = " ".join([ "fig/"+filename+"_%02d.png"%i for i in ltmax ])
     print("Generate animations : "+src)
-    os.system( anim_command+src+" -delay 300 fig/"+fic+"_%02d.png"%(tmax)+" "+fic+".mp4" )
-    os.system( anim_command+src+" -delay 300 fig/"+fic+"_%02d.png"%(tmax)+" "+fic+".gif" )
+    os.system( anim_command+src+" -delay 300 fig/"+filename+"_%02d.png"%(tmax-1)+" "+filename+".mp4" )
+    os.system( anim_command+src+" -delay 300 fig/"+filename+"_%02d.png"%(tmax-1)+" "+filename+".gif" )
 
 
+####
 
-def curve(sync=False, sm=15, focus=[]):
-    
-    d,day = get_data_from_files()
-    d = filter_by_var(d, "deaths", 10, sync=sync)
+# Main global parameters
 
-    print("Curve for day "+day)
-    
-    trace(d, sm, sync=sync, focus=focus)
-    plt.suptitle("Day 0 = "+str(day)+" (smooth=%d)"%sm )
-    
-    plt.savefig(str(day).replace("/","_")+".pdf", dpi=dpi)
+keys = [ "deaths", "confirmed" ] # data to show
 
-    
-#### 
+dpi = 100 # graph quality (for png/mp4)
 
-dpi = 100
+focus=["Hubei(China)","France","Italy","Spain","US","Germany","Iran"]
 
-focus=["Hubei(China)","France","Italy","Spain","US","Germany"]
+curve(focus=focus, sync=True)
+curve(focus=focus, sync=False)
 
-curve(focus=focus)
+regularise_anim(focus=focus, sync=True)
+regularise_anim(focus=focus, sync=False)
 
-regularise(focus=focus)
-regularise(True,focus=focus)
-
-evolution(focus=focus)
-evolution(True,focus=focus)
+begin="" #"3/1/20"
+end=""   #"3/20/20"
+evolution_anim(focus=focus, sync=True, begin=begin, end=end)
+evolution_anim(focus=focus, sync=False, begin=begin, end=end)
 
