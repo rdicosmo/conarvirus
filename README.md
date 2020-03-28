@@ -13,6 +13,7 @@ Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19)
 
 ![](./World.png)
 
+
 #### 10 countries with the most fatalities
 
 ![](./top10_sync.png)
