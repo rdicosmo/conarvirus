@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 
 import matplotlib.pyplot as plt
-from datetime import date,timedelta
+from datetime import date,timedelta,datetime
 import numpy as np
 import csv
 import os
 
 
+keys = [ "deaths", "confirmed cases", "recovered cases" ] # data to process
 death_threshold = 10
+
 
 regions = {
     'Asia': ['Heilongjiang(China)', 'Henan(China)', 'Hubei(China)', 'India', 'Indonesia', 'Japan', 'Korea, South', 'Malaysia', 'Philippines', 'Beijing(China)', 'Guangdong(China)', 'Shandong(China)', 'Iran', 'Iraq', 'Lebanon', 'Pakistan', 'Bangladesh', 'Anhui(China)', 'Chongqing(China)', 'Hainan(China)', 'Hebei(China)', 'Shanghai(China)', 'Thailand'],
@@ -16,7 +18,7 @@ regions = {
     'South America': ['Argentina', 'Brazil', 'Ecuador', 'Mexico', 'Chile', 'Colombia'],
     'Australia': ['New South Wales(Australia)'],
     'Africa': ['Burkina Faso', 'Tunisia', 'Algeria', 'Egypt', 'Israel', 'Congo (Kinshasa)', 'Ghana', 'Morocco'],
-    'World': ['Asia', 'Europe', 'North America', 'South America', 'Africa'] #, 'Australia']
+    'World': ['Asia', 'Europe', 'North America', 'South America', 'Africa', 'Australia']
 }    
 
 
@@ -75,7 +77,7 @@ def filter_by_dates(data, days, begin, end):
     return(data2, days[a:b+1])
 
 
-def filter_by_var_threshold(data, var, threshold=death_threshold, sync=False):
+def filter_by_var_threshold(data, days, var, threshold=death_threshold, sync=False):
 
     data2, xr = dict(), dict()
     for k in data:
@@ -96,7 +98,7 @@ def filter_by_var_threshold(data, var, threshold=death_threshold, sync=False):
                                 xr[k][p] = range( len(d2) )
                             else:
                                 data2[k][p] = data[k][p]
-                                xr[k][p] = range( -len(data2[k][p])+1, 1 )
+                                xr[k][p] = range( -len(data2[k][p])+1, 1 )#[datetime.strptime(days[-1],'%m/%d/%y')+timedelta(d) for d in range( -len(data2[k][p])+1, 1 )]
 
     return(data2, xr)
 
@@ -131,30 +133,44 @@ def add_regions(data):
 def diff(f): # discrete differentiation
     return( [ 0.0 ] + [ f[j]-f[j-1]  for j in range(1, len(f)) ] )
 
-def smooth(y, smooth_parameter, c=3.0 ):  # local linear smoothing
+def smooth(y, sm, c=3.0 ):  # local linear smoothing
     y2 = y.copy()
-    for i in range(smooth_parameter):
+    for i in range(sm):
         y2 = [ y2[0] ] + [ (y2[j-1] + (c-2)*y2[j] + y2[j+1])/c for j in range(1,len(y2)-1) ] + [ y2[-1] ]
     return y2
 
-def smooth_speed_acceleration(data, smooth_parameter):
+def compute_fcts(data, sm):
     #
-    dg, gs, dgs, ddgs = dict(), dict(), dict(), dict()
+    dg, gs, dgs, ddgs, gr = dict(), dict(), dict(), dict(), dict()
     for key in keys:
 
-        dg[key], gs[key], dgs[key], ddgs[key] = dict(), dict(), dict(), dict()
+        # calcul des dérivées (avec régularisation)
+        dg[key], gs[key], dgs[key], ddgs[key], gr[key] = dict(), dict(), dict(), dict(), dict()
+        
         for f in data[key]:
             dg[key][f] = diff( data[key][f] )
             
             gs[key][f] =  list(map(lambda x: np.exp(x)-1, 
                               smooth(
-                                  list(map(lambda x: np.log(1+x), data[key][f])), smooth_parameter   # smoothing of the log(1+x)-transformed function
+                                  list(map(lambda x: np.log(1+x), data[key][f])), sm   # smoothing of the log(1+x)-transformed function
                               )
             ))
             dgs[key][f] = diff( gs[key][f] )   # speed
             ddgs[key][f] = diff( dgs[key][f] ) # acceleration
-            
-    return dg, gs,dgs,ddgs
+
+
+            if key=='confirmed cases':
+                th=300
+            else:
+                th=30
+            gr[key][f]=[ np.nan ]
+            for i in range(1,len(gs[key][f])):
+                if gs[key][f][i-1] < th:
+                    gr[key][f].append( np.nan )
+                else:
+                    gr[key][f].append( gs[key][f][i]/gs[key][f][i-1]-1.0 )
+                            
+    return [data, dg, gs, dgs, ddgs, gr]
 
 
 #########################
@@ -162,7 +178,7 @@ def smooth_speed_acceleration(data, smooth_parameter):
 
 def style_args(data, region_list):   # define style parameters for plot and text for each region/country
 
-    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta", "red", "blue", "green" ]
+    colors = [ "black", "grey", "indianred", "darkred", "tomato", "peru", "olivedrab", "cadetblue", "darkblue", "crimson", "darkmagenta", "red", "blue", "green", "magenta" ]
     lc = len(colors)
     linestyles = [ "-", "--", ":", "-." ]
 
@@ -171,7 +187,7 @@ def style_args(data, region_list):   # define style parameters for plot and text
     arg_plot = dict()
     k = 0
 
-    for phase in [0,1]:
+    for phase in [0,1]: # phase 0: regions, phase 1: sub-regions, countries
         for f in region_list:
             if (phase==0 and f in regions) or (phase==1 and f not in regions):
                 arg_plot[f] = dict()
@@ -182,67 +198,79 @@ def style_args(data, region_list):   # define style parameters for plot and text
     return arg_plot
 
 
-def plot(region_list, focus, xr, g, dg, gs, dgs, ddgs, arg_plot, tmax, size=3, log=True):
+def plot(region_list, what_to_plot, focus, xr, fcts, arg_plot, tmax, size=5, log=True):
 
-    lk=len(keys)
+    [ g, dg, gs, dgs, ddgs, gr ]=fcts
+    lk = len(what_to_plot[0])
+    lg = len(what_to_plot[1])
 
-    fig = plt.figure(figsize=(size*4,size*lk))
-    
+    fig = plt.figure(figsize=(size*1.33*lg, size*lk))
+
     for i in range(lk):
-        key = keys[i]
-        l = 0
-        for (title, fc, yscale, ylim) in [ ("Total number of "+key, gs, ('log', {}), 10.0),
-                                                ("Number of "+key+" by day $\\left(\\frac{\\Delta "+key.replace(" ","\\_")+"}{\\Delta t}\\right)$", dgs, ('log', {}), 1.0),
-                                                ("Acceleration of the number of "+key+" $\\left(\\frac{\Delta^2 "+key.replace(" ","\\_")+"}{(\Delta t)^2}\\right)$", ddgs, ('symlog',{'linthreshy': 10.0}), 0)
-                                                ]: 
+        
+        key = what_to_plot[0][i]
+        for l in range(len(what_to_plot[1])):
 
-            ax = plt.subplot( lk, 3, 3*i + l+1 )
+            (title, fc, yscale, ylim)= [ ("Total number of "+key, gs, ('log', {}), [10.0, 100.0, 10.0]),
+                                         ("Speed (number of "+key+" by day) $\\left(\\frac{\\Delta "+key.replace(" ","\\_")+"}{\\Delta t}\\right)$", dgs, ('log', {}), [1.0, 10.0, 1.0]),
+                                         ("Acceleration of the number of "+key+" $\\left(\\frac{\Delta^2 "+key.replace(" ","\\_")+"}{(\Delta t)^2}\\right)$", ddgs, ('symlog',{'linthreshy': 10.0}), [0,0,0]),
+                                         ("Daily growth rate of "+key, gr, ('', {}), [0,0.5])
+            ][ what_to_plot[1][l] ]
+
+            ax = plt.subplot( lk, lg, lg*i + l+1 )
             plt.title(title, fontsize=int(size*2.7))
-
+            
             for f in fc[key]:
 
-                color = arg_plot[f]["color"]  # same color and width as graph
+                color = arg_plot[f]["color"]  # color and width of graph/text
                 if f in focus:
                     lw=2
                 else:
                     lw=1
                     
-                if l in [0] and not log:    
+                if l==0:# and not log:    
                     
-                    plt.plot( xr[key][f], [ g[key][f], dg[key][f] ][l], "+", mew=lw/2.0, ms=lw*2.5, color=color )
+                    plt.plot( xr[key][f], g[key][f], "+", mew=lw/2.0, ms=lw*2.5, color=color )
                     
                 if len(xr[key][f]) > l:
                     
                     plt.plot( xr[key][f][l:], fc[key][f][l:], lw=lw, **arg_plot[f] )
                     
-                    if fc[key][f][-1] > ylim or yscale[0]!="log" or not log:
+                    if fc[key][f][-1] > ylim[i] or yscale[0]!="log" or not log:
                         if f in focus:
                             arg_text={"bbox": {'facecolor':'white', 'alpha':0.5, 'boxstyle':"round", 'edgecolor':color},
-                                      "fontsize": 7,
+                                      "fontsize": 9,
                                       "color":color
                             }
                         else:
-                            arg_text={"fontsize": 7,
+                            arg_text={"fontsize": 9,
                                       "color":color
                             }
                             
                         plt.text( xr[key][f][-1] , fc[key][f][-1], f, **arg_text )
 
-
-            if log:
-                plt.yscale(yscale[0],**yscale[1])
-                if ylim!=0:
-                    plt.ylim(ylim)
+            
+            x1,x2 = xr[key][f][0],xr[key][f][-1]
+            
+            if yscale[0]=='': # gr
+                for j in [2,3,4,5,6,7,10,20,30]:
+                    z = pow(2.0,1.0/j)-1
+                    plt.plot([x1, x2+(x2-x1)/5.0], [z]*2,"--",color='lightgrey', lw=1, zorder=0)
+                    plt.text(x1,z,"$\\times 2$ in %d days"%j, fontsize=8, color="grey", zorder=0)
+                plt.ylim(ylim[0],ylim[1])
                 
-            x1,_ = ax.get_xlim()
-            x2 = x1 + tmax - l
-            plt.xlim(x1,x2+(x2-x1)/5.0)
-            
+            elif log:
+                plt.yscale(yscale[0],**yscale[1])
+                if key=='confirmed cases':
+                    plt.ylim(bottom=100)
+                else:
+                    plt.ylim(bottom=10)
+
             plt.grid(True,which="both")
-            l+=1
+            plt.xlim(x1,x2+(x2-x1)/5.0) # room for country name
             
-    plt.tight_layout()    
-    plt.subplots_adjust(top=0.92)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
     
     return(fig)
 
@@ -256,7 +284,7 @@ def plot(region_list, focus, xr, g, dg, gs, dgs, ddgs, arg_plot, tmax, size=3, l
 def check_for_countries(threshold=death_threshold):
 
     data, days = get_data_from_files()
-    data, xr = filter_by_var_threshold(data, "deaths", threshold, sync = False)
+    data, xr = filter_by_var_threshold(data, days, "deaths", threshold, sync = False)
     
     print("\nWARNING: New countries to add to continents ?")
     for p in data["deaths"]:
@@ -281,7 +309,8 @@ def prepare_data(begin="", end=""):
 
     data, days = filter_by_dates(data, days, begin, end)  # get data filtered by filter by date
     add_regions(data)   # add all regions
-    data, xr = filter_by_var_threshold(data, 'deaths', death_threshold, sync=False) # filter by number of deaths
+
+    data, xr = filter_by_var_threshold(data, days, 'deaths', death_threshold, sync=False) # filter by number of deaths
     
     # sort the regions/coutries by number of deaths
     d = data["deaths"] 
@@ -301,7 +330,7 @@ def prepare_graph(data, days, category, sync, log=False):
 
     if category=="top10":  # top10
 
-        title = "Dynamics of Covid-19 in the 10 countries with the most deaths"
+        title = "'top-10' countries"
         data2 = filter_by_regions(data, ['World']+regions['World'], bool=False ) # remove regions
         d = data2["deaths"]
         c = [x for x in d]
@@ -312,17 +341,15 @@ def prepare_graph(data, days, category, sync, log=False):
         focus = []
         
     elif category in regions:    
-            
-        title = "Dynamics of Covid-19"
-        if category!="World":
-            title+=" in "+category
+                    
+        title=category
 
-        if not log:
-            region_list = [i for i in regions[category]]+[category]
-            focus=[category]
-        else:
-            region_list = [i for i in regions[category]]
-            focus=[]
+        #        if not log:
+        region_list = [i for i in regions[category]]+[category]
+        focus=[category]
+        #else:
+        #    region_list = [i for i in regions[category]]
+        #    focus=[]
             
     else:
         
@@ -332,97 +359,74 @@ def prepare_graph(data, days, category, sync, log=False):
     data2 = filter_by_regions(data, region_list)
         
     # copy (with potential synchronization)
-    data2, xr2 = filter_by_var_threshold(data2, 'deaths', death_threshold, sync=sync) # filter by number of deaths
+    data2, xr2 = filter_by_var_threshold(data2, days, 'deaths', death_threshold, sync=sync) # filter by number of deaths
     
-    if sync:
-        title+=", day 0: first day such that $deaths \\geq "+str(death_threshold)+"$"
-    title+=" (data from JHU CSSE on "+str(days[-1])+")"      
+    #if sync:
+    #    title+=", day 0: 1st day s.t. $deaths \\geq "+str(death_threshold)+"$"
+    #title+=" (data from JHU CSSE on "+str(days[-1])+")"      
 
     tmax = max([ len(data2['deaths'][x]) for x in data2['deaths'] ] )
     
     return data2, xr2, region_list, focus, title, tmax
 
 
-def get_filename(category,sync):
-    filename=category.replace(' ','_')
-    if sync:
-        filename+="_sync"
+def get_filename(category,sync, log, what_to_plot):
+
+    filename=category.replace(' ','_') + ["","_sync"][int(sync)] + ["","_log"][int(log)] + "_"
+    for i in what_to_plot[0]:
+        filename+=i[0]
+    filename+="_"
+    for i in what_to_plot[1]:
+        filename+=str(i)
     return(filename)
 
 
-def curves(category, filename="", begin="", end="", smooth_parameter=15, size=3, sync=False, log=True):
+def curves(category, what_to_plot=(keys, [0,1,2]), filename="", begin="", end="", sm=0, size=5, sync=False, log=True):
 
-    filename=get_filename(category, sync)
+    filename=get_filename(category, sync, log, what_to_plot)
     
     print("Graph for "+category+", sync=",sync, "=>",filename)
         
     data, days, xr, arg_plot = prepare_data(begin=begin, end=end)
     
     data2, xr2, region_list, focus, title, tmax = prepare_graph(data, days, category=category, sync=sync, log=log)
-    dg, gs, dgs, ddgs = smooth_speed_acceleration(data2, smooth_parameter)
-    fig = plot(region_list, focus, xr2, data2, dg, gs, dgs, ddgs, arg_plot, tmax, size=size, log=log)
-    plt.suptitle(title)
+    fcts = compute_fcts(data2, sm)
+    fig = plot(region_list, what_to_plot, focus, xr2, fcts, arg_plot, tmax, size=size, log=log)
+    plt.suptitle(title)#, fontsize = [7,10,10][len(what_to_plot[1])-1] )
     plt.savefig(filename+".png", dpi=dpi)
     plt.close('all')
     
-
-def regularise(category, filename="", begin="", end="", smooth_parameter=15, size=3, sync=False, log=True):
-
-    filename=get_filename(category, sync)
     
-    print("Animation for "+category+" and several smoothing parameters, sync=",sync,"=>",filename)
-
-    data, days, xr, tmax, arg_plot = prepare_data(begin=begin, end=end)
-    data2, xr2, region_list, focus, title, tmax = prepare_graph(data, days, category=category, sync=sync)
-
-    smooth_parameters = range(smooth_parameter + 1)
-    ns = len(smooth_parameters)
-    for n in range(ns):
-        print("Smooth parameter:",smooth_parameters[n])
-        dg, gs, dgs, ddgs = smooth_speed_acceleration(data, n)
-        fig = plot(xr, data, gs, dgs, ddgs, arg_plot, tmax, size=size, log=log)
-        plt.suptitle(title+", smooth="+str(n))
-        plt.savefig("fig/"+filename+"_%02d.png"%n, dpi=dpi)
-        plt.close('all')
-
-    anim_command = "convert -verbose -delay 10 -loop 0 "        
-    lns = list(range( ns )) + [ns-1]*4 + list(range(ns-1,-1,-1)) + [0]*4
-    src = " ".join(["fig/"+filename+"_%02d.png"%i for i in lns ])
-    print("Generate animations from : "+src)
-    #os.system( anim_command+src+" "+filename+".mp4" )
-    os.system( anim_command+src+" "+filename+".gif" )
-
+def animation(category, what_to_plot=(keys, [0,1,2]), begin="", end="", sm=0, size=5, sync=False, log=True):
     
-def evolution(category, begin="", end="", smooth_parameter=15, size=3, sync=False, log=True):
+    filename=get_filename(category, sync, log, what_to_plot)+"_evol"
     
-    filename=get_filename(category, sync)+"_evol"
-
     print("Animation for "+category+" and several dates, sync=",sync,"=>",filename)
 
     data, days, xr, arg_plot = prepare_data(begin=begin, end=end)
     data2, xr2, region_list, focus, title, tmax = prepare_graph(data, days, category=category, sync=sync, log=log)
-    dg, gs, dgs, ddgs = smooth_speed_acceleration(data, smooth_parameter)
+    fcts = compute_fcts(data, sm)
         
-    for t in range(0,tmax):
+    for t in range(1,tmax):
         
         print("t=",t,"day=",days[t])
 
         # Crop all data 
-        data3, dg3, xr3, gs3, dgs3, ddgs3 = dict(), dict(), dict(), dict(), dict(), dict() 
-        for key in keys:
-            data3[key], dg3[key], xr3[key], gs3[key], dgs3[key], ddgs3[key] = dict(), dict(), dict(), dict(), dict(), dict()
-            for f in data2[key]:
-
-                z = max(0, len(data2[key][f]) - tmax + t + 1)
-                data3[key][f] = data2[key][f][0:z]
-                dg3[key][f] = dg[key][f][0:z]
-                xr3[key][f] = xr[key][f][0:z]
-                gs3[key][f] = gs[key][f][0:z]
-                dgs3[key][f] = dgs[key][f][0:z]
-                ddgs3[key][f] = ddgs[key][f][0:z]
-                
-        fig = plot(region_list, focus, xr3, data3, dg3, gs3, dgs3, ddgs3, arg_plot, tmax, size=size, log=log)
-        plt.suptitle(title+", day="+str(days[t]))
+        fcts2 = [ dict() for j in range(len(fcts)) ]
+        xr2 = dict()
+        for j in range(len(fcts)):
+            for key in keys:
+                fcts2[j][key] = dict()
+                if j==0:
+                    xr2[key] = dict()
+                for f in data2[key]:
+                    z = max(0, len(data2[key][f]) - tmax + t + 1)
+                    fcts2[j][key][f] = fcts[j][key][f][0:z]
+                    if j==0:
+                        xr2[key][f] = xr[key][f][0:z]
+                    
+        fig = plot(region_list, what_to_plot, focus, xr2, fcts2, arg_plot, tmax, size=size, log=log)
+        plt.suptitle(title)
         plt.savefig("fig/"+filename+"_%02d.png"%t, dpi=dpi)
         plt.close('all')
 
@@ -437,24 +441,29 @@ def evolution(category, begin="", end="", smooth_parameter=15, size=3, sync=Fals
 #########################
 # Main global parameters
 
-keys = [ "deaths", "confirmed cases", "recovered cases" ] # data to show
 
-check_for_countries(5)
+
+check_for_countries()
 
 dpi = 90 # graph quality (for png/mp4)
 
-for (region, begin) in [
-        ('World',''),
-        ('top10',''),
-        ('Europe','1/29/20'),
-        ('Asia',''),
-        ('North America','2/27/20'),
-        ('South America','3/15/20'),
-        ('Africa','3/9/20')
-#        ('Australia',''),        
-        ]:
-    curves(region,log=True, begin=begin)                 # log graph...
-    curves(region,log=True, sync=True)                   # log graph synchronized
-    evolution(region, log=False, begin=begin)            # and non-log animation
+#what_to_plot=[ keys, [0,1,2] ]
+for what_to_plot in [ [ ['deaths' ], [0,3] ],
+                      [ ['confirmed cases' ], [0,3] ]#,
+#                      [ ['recovered cases' ], [0,3] ]
+]:
 
+    for (region, begin) in [
+            ('World',''),
+            ('top10',''),
+            ('Europe','2/18/20'),
+            ('Asia',''),
+            ('North America','2/27/20'),
+            ('South America','3/15/20'),
+            ('Africa','3/9/20')#,
+            #('Australia','')        
+            ]:
+        curves(region, what_to_plot=what_to_plot, begin=begin, sm=5)               
+        #    curves(region, what_to_plot=what_to_plot, sync=True)                  
+        #animation(region, what_to_plot=what_to_plot, begin=begin, sm=15) 
 

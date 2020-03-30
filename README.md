@@ -1,109 +1,72 @@
 
-## Animations and graphs on the exponential evolution of COVID-19
+## Animations on the evolution of COVID-19
 
-Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19), one provides a series of 3x3 graphs:
+Based on [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19).
 
-- line 1 corresponds to the number of deaths; line 2 to the number of confirmed cases ; line 3 to the number of recovered cases ;
-- column 1 gives the figures, column 2 the speed, and column 3 the acceleration ;
-- each curve in these graphs corresponds to one country or region.
+### Deaths
 
 - - - 
-
-### Worldwide
-
-
-![](./World_evol.gif)
-
-logscale:
-
-![](./World.png)
-
-logscale/synchronized:
-
-![](./World_sync.png)
+ 
+![](./World_log_d_03.png)
 
 - - -
 
-### 10 countries with the largest numbers of deaths
+![](./top10_log_d_03.png)
 
-![](./top10_evol.gif)
+- - -
 
-logscale:
+![](./Europe_log_d_03.png)
 
-![](./top10.png)
+- - -
 
-logscale/synchronized:
+![](./Asia_log_d_03.png)
 
-![](./top10_sync.png)
+- - -
 
-- - - 
+![](./North_America_log_d_03.png)
 
-### Africa
+- - -
 
-![](./Africa_evol.gif)
+![](./South_America_log_d_03.png)
 
-logscale:
+- - -
 
-![](./Africa.png)
+![](./Africa_log_d_03.png)
 
-logscale/synchronized:
+- - -
 
-![](./Africa_sync.png)
+- - -
 
-- - - 
+### Confirmed cases
 
-### Asia
-
-![](./Asia_evol.gif)
-
-logscale:
-
-![](./Asia.png)
-
-logscale/synchronized:
-
-![](./Asia_sync.png)
 
 - - - 
+ 
+![](./World_log_c_03.png)
 
-### Europe
+- - -
 
-![](./Europe_evol.gif)
+![](./top10_log_c_03.png)
 
-logscale:
+- - -
 
-![](./Europe.png)
+![](./Europe_log_c_03.png)
 
-logscale/synchronized:
+- - -
 
-![](./Europe_sync.png)
+![](./Asia_log_c_03.png)
 
-- - - 
+- - -
 
-### North America
+![](./North_America_log_c_03.png)
 
-![](./North_America_evol.gif)
+- - -
 
-logscale:
+![](./South_America_log_c_03.png)
 
-![](./North_America.png)
+- - -
 
-logscale/synchronized:
+![](./Africa_log_c_03.png)
 
-![](./North_America_sync.png)
+- - -
 
-- - - 
-
-### South America
-
-![](./South_America_evol.gif)
-
-logscale:
-
-![](./South_America.png)
-
-logscale/synchronized:
-
-![](./South_America_sync.png)
-
-- - - 
