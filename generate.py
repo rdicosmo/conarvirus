@@ -209,6 +209,7 @@ def plot(region_list, what_to_plot, focus, xr, fcts, arg_plot, tmax, size=5, log
     for i in range(lk):
         
         key = what_to_plot[0][i]
+        
         for l in range(len(what_to_plot[1])):
 
             (title, fc, yscale, ylim)= [ ("Total number of "+key, gs, ('log', {}), [10.0, 100.0, 10.0]),
@@ -228,9 +229,9 @@ def plot(region_list, what_to_plot, focus, xr, fcts, arg_plot, tmax, size=5, log
                 else:
                     lw=1
                     
-                if l==0:# and not log:    
+                if what_to_plot[1][l] in [0]:# and not log:    
                     
-                    plt.plot( xr[key][f], g[key][f], "+", mew=lw/2.0, ms=lw*2.5, color=color )
+                    plt.plot( xr[key][f], [ g[key][f], dg[key][f] ][ what_to_plot[1][l] ], "+", mew=lw/2.0, ms=lw*2.5, color=color )
                     
                 if len(xr[key][f]) > l:
                     
@@ -261,10 +262,11 @@ def plot(region_list, what_to_plot, focus, xr, fcts, arg_plot, tmax, size=5, log
                 
             elif log:
                 plt.yscale(yscale[0],**yscale[1])
-                if key=='confirmed cases':
-                    plt.ylim(bottom=100)
-                else:
-                    plt.ylim(bottom=10)
+                if yscale[0]=='log':
+                    if key=='confirmed cases':
+                        plt.ylim(bottom=100)
+                    else:
+                        plt.ylim(bottom=10)
 
             plt.grid(True,which="both")
             plt.xlim(x1,x2+(x2-x1)/5.0) # room for country name
@@ -330,7 +332,7 @@ def prepare_graph(data, days, category, sync, log=False):
 
     if category=="top10":  # top10
 
-        title = "'top-10' countries"
+        title = "10 countries with the most deaths"
         data2 = filter_by_regions(data, ['World']+regions['World'], bool=False ) # remove regions
         d = data2["deaths"]
         c = [x for x in d]
@@ -393,7 +395,7 @@ def curves(category, what_to_plot=(keys, [0,1,2]), filename="", begin="", end=""
     fcts = compute_fcts(data2, sm)
     fig = plot(region_list, what_to_plot, focus, xr2, fcts, arg_plot, tmax, size=size, log=log)
     plt.suptitle(title)#, fontsize = [7,10,10][len(what_to_plot[1])-1] )
-    plt.savefig(filename+".png", dpi=dpi)
+    plt.savefig("./fig/"+filename+".png", dpi=dpi)
     plt.close('all')
     
     
@@ -427,15 +429,15 @@ def animation(category, what_to_plot=(keys, [0,1,2]), begin="", end="", sm=0, si
                     
         fig = plot(region_list, what_to_plot, focus, xr2, fcts2, arg_plot, tmax, size=size, log=log)
         plt.suptitle(title)
-        plt.savefig("fig/"+filename+"_%02d.png"%t, dpi=dpi)
+        plt.savefig("tmp/"+filename+"_%02d.png"%t, dpi=dpi)
         plt.close('all')
 
     anim_command = "convert -verbose -delay 10 -loop 0 "
     ltmax = list( range( 3,tmax-1 ) ) 
-    src = " ".join([ "fig/"+filename+"_%02d.png"%i for i in ltmax ])
+    src = " ".join([ "tmp/"+filename+"_%02d.png"%i for i in ltmax ])
     print("Generate animations : "+src)
-    #os.system( anim_command+src+" -delay 300 fig/"+filename+"_%02d.png"%(tmax-1)+" "+filename+".mp4" )
-    os.system( anim_command+src+" -delay 300 fig/"+filename+"_%02d.png"%(tmax-1)+" "+filename+".gif" )
+    #os.system( anim_command+src+" -delay 300 tmp/"+filename+"_%02d.png"%(tmax-1)+" ./fig/"+filename+".mp4" )
+    os.system( anim_command+src+" -delay 300 tmp/"+filename+"_%02d.png"%(tmax-1)+" ./fig/"+filename+".gif" )
 
 
 #########################
@@ -447,23 +449,26 @@ check_for_countries()
 
 dpi = 90 # graph quality (for png/mp4)
 
-#what_to_plot=[ keys, [0,1,2] ]
-for what_to_plot in [ [ ['deaths' ], [0,3] ],
-                      [ ['confirmed cases' ], [0,3] ]#,
-#                      [ ['recovered cases' ], [0,3] ]
-]:
 
-    for (region, begin) in [
-            ('World',''),
-            ('top10',''),
-            ('Europe','2/18/20'),
-            ('Asia',''),
-            ('North America','2/27/20'),
-            ('South America','3/15/20'),
-            ('Africa','3/9/20')#,
-            #('Australia','')        
-            ]:
-        curves(region, what_to_plot=what_to_plot, begin=begin, sm=5)               
-        #    curves(region, what_to_plot=what_to_plot, sync=True)                  
-        #animation(region, what_to_plot=what_to_plot, begin=begin, sm=15) 
+sm=10
+
+for var in [ ['deaths'], ['confirmed cases'] ]:
+    for fcts in [ (1,2), (0,3), (0,1) ]:
+
+        what_to_plot=[ var, fcts ]
+        
+        for (region, begin) in [
+                ('World',''),
+                ('top10',''),
+                ('Europe','2/18/20'),
+                ('Asia',''),
+                ('North America','2/27/20'),
+                ('South America','3/15/20'),
+                ('Africa','3/9/20')#,
+                #('Australia','')        
+        ]:
+            if fcts==(0,1):
+                animation(region, what_to_plot=what_to_plot, log=False, begin=begin, sm=sm)
+            else: 
+                curves(region, what_to_plot=what_to_plot, begin=begin, sm=sm)
 
