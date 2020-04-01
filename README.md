@@ -6,9 +6,9 @@ It is stronly inspired by this [New York Times article](https://www.nytimes.com/
 
 We consider the evolution of the number of **deaths**, **confirmed cases** and **recovered cases**. For several groups of countries/regions, we provide
 
-- an animation showing the evolution of the cumulative value and the per-day value 
-- a log representation of the evolution of the *cumulative value* and its growth rate (in time, and synchronized)
-- a log representation of the evolution of the *per-day value* and its growth rate (in time, and synchronized)
+- an animation showing the evolution of the *cumulative value* and the *per-day value* ; 
+- a log-scale representation of the evolution of the *cumulative value* and its *growth rate* ;
+- a log-scale representation of the evolution of the *per-day value* and its *growth rate*.
 
 
 
