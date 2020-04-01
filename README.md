@@ -9,9 +9,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 - a log representation of the evolution of the *cumulative value* and its growth rate (in time, and synchronized)
 - a log representation of the evolution of the *per-day value* and its growth rate (in time, and synchronized)
 
-- - -
 
-- - - 
 
 ## Table of contents
 
@@ -28,7 +26,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##10 most affected countries<a name="top10"> ([table of contents](#top))
+## 10 most affected countries<a name="top10"> ([table of contents](#top))
 
 - [Deaths](#top10d) <br>
 - [Confirmed cases](#top10c) <br>
@@ -75,7 +73,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##World<a name="World"> ([table of contents](#top))
+## World<a name="World"> ([table of contents](#top))
 
 - [Deaths](#Worldd) <br>
 - [Confirmed cases](#Worldc) <br>
@@ -122,7 +120,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##Europe<a name="Europe"> ([table of contents](#top))
+## Europe<a name="Europe"> ([table of contents](#top))
 
 - [Deaths](#Europed) <br>
 - [Confirmed cases](#Europec) <br>
@@ -169,7 +167,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##Asia<a name="Asia"> ([table of contents](#top))
+## Asia<a name="Asia"> ([table of contents](#top))
 
 - [Deaths](#Asiad) <br>
 - [Confirmed cases](#Asiac) <br>
@@ -216,7 +214,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##North America<a name="North_America"> ([table of contents](#top))
+## North America<a name="North_America"> ([table of contents](#top))
 
 - [Deaths](#North_Americad) <br>
 - [Confirmed cases](#North_Americac) <br>
@@ -263,7 +261,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##South America<a name="South_America"> ([table of contents](#top))
+## South America<a name="South_America"> ([table of contents](#top))
 
 - [Deaths](#South_Americad) <br>
 - [Confirmed cases](#South_Americac) <br>
@@ -310,7 +308,7 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-##Africa<a name="Africa"> ([table of contents](#top))
+## Africa<a name="Africa"> ([table of contents](#top))
 
 - [Deaths](#Africad) <br>
 - [Confirmed cases](#Africac) <br>

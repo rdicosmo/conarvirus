@@ -543,7 +543,7 @@ def generate_graphs():
                 for (r, begin),_ in reg:
 
                     if fcts==(0,1) and not sync:
-                        pass#animation(r, what_to_plot=what_to_plot, log=False, begin=begin, sm=sm)
+                        animation(r, what_to_plot=what_to_plot, log=False, begin=begin, sm=sm)
                     else: 
                         curves(r, what_to_plot=what_to_plot, begin=begin, sm=sm, sync=sync)
 
@@ -561,7 +561,7 @@ def generate_markdown():
     for (r,_),n in reg:
 
 
-        print("##"+n+"<a name=\""+r.replace(' ','_')+"\"> ([table of contents](#top))\n" )
+        print("## "+n+"<a name=\""+r.replace(' ','_')+"\"> ([table of contents](#top))\n" )
 
         for var,n2 in [ ['d','Deaths'], ['c', 'Confirmed cases'], ['r', 'Recovered cases'] ]:
             print("- ["+n2+"](#"+r.replace(' ','_')+var+") <br>")
@@ -577,7 +577,6 @@ def generate_markdown():
                     f = "./fig/"+get_filename (r, False, False, what_to_plot)
                     print("![]("+f+"_evol.gif"+")")
                 else:
-                    if 
                     for sync in [False, True]:
                         f = "./fig/"+get_filename (r, sync, True, what_to_plot)
                         print("![]("+f+".png"+")")
@@ -586,5 +585,5 @@ def generate_markdown():
             print("- - - \n")
         print("\n- - - \n")
 
-generate_graphs()
-#generate_markdown()
+#generate_graphs()
+generate_markdown()
