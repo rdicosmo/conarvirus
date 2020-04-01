@@ -308,7 +308,7 @@ def plot(region_list, what_to_plot, focus, fcts, arg_plot, size=5, log=True, syn
 
                 plt.plot([x1, x3], [0, 0], "-", color='black', lw=1, zorder=2)
                 
-                plt.ylim( max(-0.3, yy[0]), yy[1])
+                plt.ylim( max(-0.3, yy[0]), min(1.0, yy[1]))
                 
             elif log:
                 
@@ -585,5 +585,5 @@ def generate_markdown():
             print("- - - \n")
         print("\n- - - \n")
 
-#generate_graphs()
-generate_markdown()
+generate_graphs()
+#generate_markdown()
