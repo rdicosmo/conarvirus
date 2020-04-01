@@ -2,6 +2,7 @@
 # Graphical representations on the evolution of COVID-19 <a name="top">
 
 This page provides graphical representations of daily-updated [data provided by JHU CSSE](https://github.com/CSSEGISandData/COVID-19).
+It is stronly inspired by this [New York Times article](https://www.nytimes.com/interactive/2020/03/21/upshot/coronavirus-deaths-by-country.html).
 
 We consider the evolution of the number of **deaths**, **confirmed cases** and **recovered cases**. For several groups of countries/regions, we provide
 
