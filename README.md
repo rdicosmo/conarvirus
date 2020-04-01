@@ -23,7 +23,6 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 
 - - - 
 
-
 - - - 
 
 ## 10 most affected countries<a name="top10"> ([table of contents](#top))
@@ -39,10 +38,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/top10_d_01_evol.gif)
 
 ![](./fig/top10_log_d_02.png)
-![](./fig/top10_sync_log_d_02.png)
 
 ![](./fig/top10_log_d_13.png)
-![](./fig/top10_sync_log_d_13.png)
 
 - - - 
 
@@ -51,10 +48,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/top10_c_01_evol.gif)
 
 ![](./fig/top10_log_c_02.png)
-![](./fig/top10_sync_log_c_02.png)
 
 ![](./fig/top10_log_c_13.png)
-![](./fig/top10_sync_log_c_13.png)
 
 - - - 
 
@@ -63,10 +58,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/top10_r_01_evol.gif)
 
 ![](./fig/top10_log_r_02.png)
-![](./fig/top10_sync_log_r_02.png)
 
 ![](./fig/top10_log_r_13.png)
-![](./fig/top10_sync_log_r_13.png)
 
 - - - 
 
@@ -86,10 +79,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/World_d_01_evol.gif)
 
 ![](./fig/World_log_d_02.png)
-![](./fig/World_sync_log_d_02.png)
 
 ![](./fig/World_log_d_13.png)
-![](./fig/World_sync_log_d_13.png)
 
 - - - 
 
@@ -98,10 +89,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/World_c_01_evol.gif)
 
 ![](./fig/World_log_c_02.png)
-![](./fig/World_sync_log_c_02.png)
 
 ![](./fig/World_log_c_13.png)
-![](./fig/World_sync_log_c_13.png)
 
 - - - 
 
@@ -110,10 +99,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/World_r_01_evol.gif)
 
 ![](./fig/World_log_r_02.png)
-![](./fig/World_sync_log_r_02.png)
 
 ![](./fig/World_log_r_13.png)
-![](./fig/World_sync_log_r_13.png)
 
 - - - 
 
@@ -133,10 +120,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Europe_d_01_evol.gif)
 
 ![](./fig/Europe_log_d_02.png)
-![](./fig/Europe_sync_log_d_02.png)
 
 ![](./fig/Europe_log_d_13.png)
-![](./fig/Europe_sync_log_d_13.png)
 
 - - - 
 
@@ -145,10 +130,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Europe_c_01_evol.gif)
 
 ![](./fig/Europe_log_c_02.png)
-![](./fig/Europe_sync_log_c_02.png)
 
 ![](./fig/Europe_log_c_13.png)
-![](./fig/Europe_sync_log_c_13.png)
 
 - - - 
 
@@ -157,10 +140,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Europe_r_01_evol.gif)
 
 ![](./fig/Europe_log_r_02.png)
-![](./fig/Europe_sync_log_r_02.png)
 
 ![](./fig/Europe_log_r_13.png)
-![](./fig/Europe_sync_log_r_13.png)
 
 - - - 
 
@@ -180,10 +161,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Asia_d_01_evol.gif)
 
 ![](./fig/Asia_log_d_02.png)
-![](./fig/Asia_sync_log_d_02.png)
 
 ![](./fig/Asia_log_d_13.png)
-![](./fig/Asia_sync_log_d_13.png)
 
 - - - 
 
@@ -192,10 +171,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Asia_c_01_evol.gif)
 
 ![](./fig/Asia_log_c_02.png)
-![](./fig/Asia_sync_log_c_02.png)
 
 ![](./fig/Asia_log_c_13.png)
-![](./fig/Asia_sync_log_c_13.png)
 
 - - - 
 
@@ -204,10 +181,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Asia_r_01_evol.gif)
 
 ![](./fig/Asia_log_r_02.png)
-![](./fig/Asia_sync_log_r_02.png)
 
 ![](./fig/Asia_log_r_13.png)
-![](./fig/Asia_sync_log_r_13.png)
 
 - - - 
 
@@ -227,10 +202,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/North_America_d_01_evol.gif)
 
 ![](./fig/North_America_log_d_02.png)
-![](./fig/North_America_sync_log_d_02.png)
 
 ![](./fig/North_America_log_d_13.png)
-![](./fig/North_America_sync_log_d_13.png)
 
 - - - 
 
@@ -239,10 +212,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/North_America_c_01_evol.gif)
 
 ![](./fig/North_America_log_c_02.png)
-![](./fig/North_America_sync_log_c_02.png)
 
 ![](./fig/North_America_log_c_13.png)
-![](./fig/North_America_sync_log_c_13.png)
 
 - - - 
 
@@ -251,10 +222,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/North_America_r_01_evol.gif)
 
 ![](./fig/North_America_log_r_02.png)
-![](./fig/North_America_sync_log_r_02.png)
 
 ![](./fig/North_America_log_r_13.png)
-![](./fig/North_America_sync_log_r_13.png)
 
 - - - 
 
@@ -274,10 +243,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/South_America_d_01_evol.gif)
 
 ![](./fig/South_America_log_d_02.png)
-![](./fig/South_America_sync_log_d_02.png)
 
 ![](./fig/South_America_log_d_13.png)
-![](./fig/South_America_sync_log_d_13.png)
 
 - - - 
 
@@ -286,10 +253,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/South_America_c_01_evol.gif)
 
 ![](./fig/South_America_log_c_02.png)
-![](./fig/South_America_sync_log_c_02.png)
 
 ![](./fig/South_America_log_c_13.png)
-![](./fig/South_America_sync_log_c_13.png)
 
 - - - 
 
@@ -298,10 +263,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/South_America_r_01_evol.gif)
 
 ![](./fig/South_America_log_r_02.png)
-![](./fig/South_America_sync_log_r_02.png)
 
 ![](./fig/South_America_log_r_13.png)
-![](./fig/South_America_sync_log_r_13.png)
 
 - - - 
 
@@ -321,10 +284,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Africa_d_01_evol.gif)
 
 ![](./fig/Africa_log_d_02.png)
-![](./fig/Africa_sync_log_d_02.png)
 
 ![](./fig/Africa_log_d_13.png)
-![](./fig/Africa_sync_log_d_13.png)
 
 - - - 
 
@@ -333,10 +294,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Africa_c_01_evol.gif)
 
 ![](./fig/Africa_log_c_02.png)
-![](./fig/Africa_sync_log_c_02.png)
 
 ![](./fig/Africa_log_c_13.png)
-![](./fig/Africa_sync_log_c_13.png)
 
 - - - 
 
@@ -345,10 +304,8 @@ We consider the evolution of the number of **deaths**, **confirmed cases** and *
 ![](./fig/Africa_r_01_evol.gif)
 
 ![](./fig/Africa_log_r_02.png)
-![](./fig/Africa_sync_log_r_02.png)
 
 ![](./fig/Africa_log_r_13.png)
-![](./fig/Africa_sync_log_r_13.png)
 
 - - - 
 

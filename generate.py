@@ -532,7 +532,7 @@ ff = [  (0,1), (0,2), (1,3) ]
 
 def generate_graphs():
     
-    for sync in [False, True]:
+    for sync in [False]:
 
         for var in [ ['deaths'], ['confirmed cases'], ['recovered cases'] ]:
 
@@ -577,7 +577,7 @@ def generate_markdown():
                     f = "./fig/"+get_filename (r, False, False, what_to_plot)
                     print("![]("+f+"_evol.gif"+")")
                 else:
-                    for sync in [False, True]:
+                    for sync in [False]:
                         f = "./fig/"+get_filename (r, sync, True, what_to_plot)
                         print("![]("+f+".png"+")")
                     
