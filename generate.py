@@ -143,7 +143,7 @@ def growth(f):
         if f[i] < 1:
             gr.append( np.nan )
         else:
-            gr.append( f[i+1]/f[i]-1.0 )
+            gr.append( 100*(f[i+1]/f[i]-1.0) )
     
     return(gr)
 
@@ -252,11 +252,11 @@ def plot(region_list, what_to_plot, focus, fcts, arg_plot, size=5, log=True, syn
             nl = what_to_plot[1][l]
             
             key2 = key.replace(" ","\\_")
-            dg2 = "\\left(\\frac{\\Delta "+key2+"}{\\Delta t}\\right)"
+            dg2 = "\\left({\\Delta "+key2+"}/{\\Delta t}\\right)"
             (title, fc, yscale, ylim)= [ ("Total number of "+key, (gs,g), ('log', {}), [10.0, 100.0, 10.0]),
-                                         ("Speed of "+key+" (nb by day) $"+dg2+"$", (dgs,dg), ('log', {}), [1.0, 10.0, 1.0]),
-                                         ("Growth rate of "+key+" $\\left(\\frac{\\Delta "+key2+"}{"+key2+"}\\right)$" , (grgs,grg), ('', {}), [0,0,0]),
-                                         ("Growth rate of the speed of "+key+" $\\left(\\frac{\\Delta "+dg2+"}{"+dg2+"}\\right)$" , (grdgs,grdgs), ('', {}), [0,0,0]),
+                                         (key+" by day $"+dg2+"$", (dgs,dg), ('log', {}), [1.0, 10.0, 1.0]),
+                                         ("Growth rate (%) of "+key+" $\\left(\\frac{\\Delta "+key2+"}{"+key2+"}\\right)$" , (grgs,grg), ('', {}), [0,0,0]),
+                                         ("Growth rate (%) of "+key+" by day $\\left(\\frac{\\Delta "+dg2+"}{"+dg2+"}\\right)$" , (grdgs,grdgs), ('', {}), [0,0,0]),
             ][ nl ]
 
             ax = plt.subplot( lk, lg, lg*i + l+1 )
@@ -297,18 +297,18 @@ def plot(region_list, what_to_plot, focus, fcts, arg_plot, size=5, log=True, syn
                 yy = ax.get_ylim()
                 
                 for j in [2,3,4,10,30]:
-                    z = pow(2.0, 1.0/j)-1
+                    z = 100*(pow(2.0, 1.0/j)-1)
                     if z>=yy[0] and z<=yy[1]:
                         plt.plot([x1, x3], [z,z], "-",color='lightgrey', lw=1, zorder=0)
-                        plt.text(x1,z,"$\\times 2$ in %d days"%j, fontsize=8, color="grey", zorder=0)
-                    z = pow(0.5, 1.0/j)-1
+                        plt.text(x1,z,"doubles every %d days"%j, fontsize=8, color="grey", zorder=0)
+                    z = 100*(pow(0.5, 1.0/j)-1)
                     if z>=yy[0] and z<=yy[1]:
                         plt.plot([x1, x3], [z,z], "-",color='lightgrey', lw=1, zorder=0)
-                        plt.text(x1,z,"$\\div 2$ in %d days"%j, fontsize=8, color="grey", zorder=0)
+                        plt.text(x1,z,"divided by 2 every %d days"%j, fontsize=8, color="grey", zorder=0)
 
                 plt.plot([x1, x3], [0, 0], "-", color='black', lw=1, zorder=2)
                 
-                plt.ylim( max(-0.3, yy[0]), min(1.0, yy[1]))
+                plt.ylim( max(-30, yy[0]), min(100, yy[1]))
                 
             elif log:
                 
@@ -427,9 +427,9 @@ def prepare_graph(data, days, category, sync):
     data2 = filter_by_regions(data, region_list)
     
     if sync:
-        title+=" (data from JHU CSSE "+str(days[-1])+", day 0=$1^{st}$ day with $deaths \\geq 10$)"
+        title+=" (data from JHU CSSE "+str(days[-1])+", d_0=$1^{st}$ day with $deaths \\geq 10$)"
     else:
-        title+=" (data from JHU CSSE, day 0="+str(days[-1])+")"      
+        title+=" (data from JHU CSSE, "+str(days[-1])+")"      
     
     return data2, region_list, focus, title
 
